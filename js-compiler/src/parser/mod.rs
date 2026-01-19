@@ -101,15 +101,18 @@ impl Parser {
             return None;
         }
 
-        // TODO: We're skipping the expressions until we encounter a semicolon
-        while !self.cur_token_is(Token::SemiColon) {
+        self.next_token();
+
+        let value = self.parse_expression(Precedence::Lowest)?;
+
+        if self.peek_token == Token::SemiColon {
             self.next_token();
         }
 
         Some(Statement::Let(LetStatement {
             token,
             name,
-            value: Expression::Empty, // Placeholder
+            value,
         }))
     }
     
@@ -118,14 +121,15 @@ impl Parser {
 
         self.next_token();
 
-        // TODO: We're skipping the expressions until we encounter a semicolon
-        while !self.cur_token_is(Token::SemiColon) {
+        let return_value = self.parse_expression(Precedence::Lowest)?;
+
+        if self.peek_token == Token::SemiColon {
             self.next_token();
         }
 
         Some(Statement::Return(ReturnStatement {
             token,
-            return_value: Expression::Empty, // Placeholder
+            return_value,
         }))
     }
 
