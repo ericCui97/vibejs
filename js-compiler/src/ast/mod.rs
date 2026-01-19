@@ -12,7 +12,17 @@ pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
     While(WhileStatement),
+    For(ForStatement),
     Expression(ExpressionStatement),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct ForStatement {
+    pub token: Token, // Token::For
+    pub init: Option<Box<Statement>>,
+    pub condition: Option<Expression>,
+    pub update: Option<Box<Statement>>,
+    pub body: BlockStatement,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
@@ -148,6 +158,7 @@ impl Token {
             Token::If => "if".to_string(),
             Token::Else => "else".to_string(),
             Token::While => "while".to_string(),
+            Token::For => "for".to_string(),
             Token::Function => "function".to_string(),
             Token::Identifier(s) => s.clone(),
             Token::Number(n) => n.to_string(),

@@ -39,7 +39,7 @@
 
 ### 阶段 3: 高级特性
 - [x] **While Loop**: 解析 `while (x) { ... }`。
-- [ ] **For Loop**: 解析 `for (let i=0; i<10; i++) { ... }`。
+- [x] **For Loop**: 解析 `for (let i=0; i<10; i++) { ... }`。
 - [x] **Array Literal**: 解析 `[1, 2, 3]`。
 - [x] **Hash Literal**: 解析 `{ a: 1, b: 2 }`。
 

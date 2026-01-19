@@ -83,7 +83,14 @@ impl Lexer {
                     Token::Bang
                 }
             }
-            '+' => Token::Plus,
+            '+' => {
+                if self.peek_char() == '+' {
+                    self.read_char();
+                    Token::PlusPlus
+                } else {
+                    Token::Plus
+                }
+            }
             '-' => Token::Minus,
             '*' => Token::Asterisk,
             '/' => Token::Slash,
@@ -140,6 +147,7 @@ impl Lexer {
             "if" => Token::If,
             "else" => Token::Else,
             "while" => Token::While,
+            "for" => Token::For,
             "true" => Token::True,
             "false" => Token::False,
             _ => Token::Identifier(ident),
@@ -305,6 +313,30 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Number(2.0));
         assert_eq!(lexer.next_token(), Token::RBracket);
         assert_eq!(lexer.next_token(), Token::SemiColon);
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_for_loop_lexing() {
+        let input = "for (let i = 0; i < 10; i++) { }";
+        let mut lexer = Lexer::new(input);
+
+        assert_eq!(lexer.next_token(), Token::For);
+        assert_eq!(lexer.next_token(), Token::LParen);
+        assert_eq!(lexer.next_token(), Token::Let);
+        assert_eq!(lexer.next_token(), Token::Identifier("i".to_string()));
+        assert_eq!(lexer.next_token(), Token::Equal);
+        assert_eq!(lexer.next_token(), Token::Number(0.0));
+        assert_eq!(lexer.next_token(), Token::SemiColon);
+        assert_eq!(lexer.next_token(), Token::Identifier("i".to_string()));
+        assert_eq!(lexer.next_token(), Token::Lt);
+        assert_eq!(lexer.next_token(), Token::Number(10.0));
+        assert_eq!(lexer.next_token(), Token::SemiColon);
+        assert_eq!(lexer.next_token(), Token::Identifier("i".to_string()));
+        assert_eq!(lexer.next_token(), Token::PlusPlus);
+        assert_eq!(lexer.next_token(), Token::RParen);
+        assert_eq!(lexer.next_token(), Token::LBrace);
+        assert_eq!(lexer.next_token(), Token::RBrace);
         assert_eq!(lexer.next_token(), Token::EOF);
     }
 }

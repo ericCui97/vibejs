@@ -1,6 +1,6 @@
 use crate::lexer::Lexer;
 use crate::lexer::token::Token;
-use crate::ast::{Program, Statement, LetStatement, ReturnStatement, WhileStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, IfExpression, BlockStatement, FunctionLiteral, CallExpression, AssignmentExpression, ArrayLiteral, HashLiteral, StringLiteral};
+use crate::ast::{Program, Statement, LetStatement, ReturnStatement, WhileStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, IfExpression, BlockStatement, FunctionLiteral, CallExpression, AssignmentExpression, ArrayLiteral, HashLiteral, StringLiteral, ForStatement};
 
 // Pratt Parser Precedence
 #[derive(PartialEq, PartialOrd)]
@@ -75,6 +75,7 @@ impl Parser {
             Token::Let => self.parse_let_statement(),
             Token::Return => self.parse_return_statement(),
             Token::While => self.parse_while_statement(),
+            Token::For => self.parse_for_statement(),
             _ => self.parse_expression_statement(),
         }
     }
@@ -149,6 +150,68 @@ impl Parser {
         Some(Statement::While(WhileStatement {
             token,
             condition,
+            body,
+        }))
+    }
+
+    fn parse_for_statement(&mut self) -> Option<Statement> {
+        let token = self.cur_token.clone();
+        
+        if !self.expect_peek(Token::LParen) {
+            return None;
+        }
+        
+        self.next_token();
+        
+        let init;
+        if self.cur_token_is(Token::SemiColon) {
+            init = None;
+        } else {
+            if self.cur_token_is(Token::Let) {
+                init = self.parse_let_statement().map(Box::new);
+            } else {
+                init = self.parse_expression_statement().map(Box::new);
+            }
+        }
+        
+        if self.cur_token_is(Token::SemiColon) {
+            self.next_token();
+        }
+        
+        let mut condition = None;
+        if !self.cur_token_is(Token::SemiColon) {
+            condition = self.parse_expression(Precedence::Lowest);
+        }
+        
+        if !self.expect_peek(Token::SemiColon) {
+            return None;
+        }
+        self.next_token(); // move past ';'
+        
+        let mut update = None;
+        if !self.cur_token_is(Token::RParen) {
+            let exp = self.parse_expression(Precedence::Lowest)?;
+            update = Some(Box::new(Statement::Expression(ExpressionStatement {
+                token: token.clone(),
+                expression: exp,
+            })));
+        }
+        
+        if !self.expect_peek(Token::RParen) {
+            return None;
+        }
+        
+        if !self.expect_peek(Token::LBrace) {
+            return None;
+        }
+        
+        let body = self.parse_block_statement();
+        
+        Some(Statement::For(ForStatement {
+            token,
+            init,
+            condition,
+            update,
             body,
         }))
     }
@@ -1227,6 +1290,57 @@ mod tests {
                 }
             },
             _ => panic!("stmt not ExpressionStatement"),
+        }
+    }
+
+    #[test]
+    fn test_for_loop_parsing() {
+        let input = "for (let i = 0; i < 10; i = i + 1) { x; }";
+        
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        
+        if !parser.errors.is_empty() {
+             for err in parser.errors {
+                 eprintln!("parser error: {}", err);
+             }
+             panic!("parser has errors");
+        }
+        
+        assert_eq!(program.statements.len(), 1);
+        
+        match &program.statements[0] {
+            Statement::For(for_stmt) => {
+                // Check init
+                assert!(for_stmt.init.is_some());
+                
+                // Check condition
+                match &for_stmt.condition {
+                    Some(Expression::Infix(infix)) => {
+                        assert_eq!(infix.operator, "<");
+                    },
+                    _ => panic!("condition not Infix"),
+                }
+                
+                // Check update
+                assert!(for_stmt.update.is_some());
+                match for_stmt.update.as_ref().unwrap().as_ref() {
+                    Statement::Expression(stmt) => {
+                        match &stmt.expression {
+                            Expression::Assign(assign) => {
+                                assert_eq!(assign.name.value, "i");
+                            },
+                            _ => panic!("update expression not Assign"),
+                        }
+                    },
+                    _ => panic!("update stmt not ExpressionStatement"),
+                }
+                
+                // Check body
+                assert_eq!(for_stmt.body.statements.len(), 1);
+            },
+            _ => panic!("stmt not ForStatement"),
         }
     }
 }

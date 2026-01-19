@@ -10,6 +10,7 @@ pub enum Token {
     If,
     Else,
     While,
+    For,
     True,
     False,
     
@@ -25,6 +26,7 @@ pub enum Token {
     Asterisk,   // *
     Slash,      // /
     Bang,       // !
+    PlusPlus,   // ++
     
     // Comparison
     Eq,         // ==
