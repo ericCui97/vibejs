@@ -14,6 +14,7 @@ pub enum Statement {
     While(WhileStatement),
     For(ForStatement),
     Expression(ExpressionStatement),
+    Block(BlockStatement),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

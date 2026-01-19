@@ -17,6 +17,21 @@ pub enum Object {
     Hash(HashMap<ObjectKey, Object>),
 }
 
+impl Object {
+    pub fn type_name(&self) -> &str {
+        match self {
+            Object::Integer(_) => "INTEGER",
+            Object::String(_) => "STRING",
+            Object::Boolean(_) => "BOOLEAN",
+            Object::Null => "NULL",
+            Object::ReturnValue(_) => "RETURN_VALUE",
+            Object::Error(_) => "ERROR",
+            Object::Builtin(_) => "BUILTIN",
+            Object::Hash(_) => "HASH",
+        }
+    }
+}
+
 // We need a key type that implements Eq + Hash for HashMap
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum ObjectKey {
