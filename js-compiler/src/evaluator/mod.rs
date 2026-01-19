@@ -125,6 +125,7 @@ fn eval_expression(expr: Expression, env: &mut Environment) -> Object {
             }
             Object::Array(elements)
         },
+        Expression::Hash(hash) => eval_hash_literal(hash, env),
         Expression::Index(index) => {
             let left = eval_expression(index.left, env);
             if let Object::Error(_) = left {
@@ -266,6 +267,31 @@ fn eval_identifier(name: String, env: &mut Environment) -> Object {
     Object::Error(format!("identifier not found: {}", name))
 }
 
+fn eval_hash_literal(node: Box<crate::ast::HashLiteral>, env: &mut Environment) -> Object {
+    let mut pairs = HashMap::new();
+
+    for (key_node, value_node) in node.pairs {
+        let key = eval_expression(key_node, env);
+        if let Object::Error(_) = key {
+            return key;
+        }
+
+        let hash_key = match ObjectKey::from_object(&key) {
+            Some(k) => k,
+            None => return Object::Error(format!("unusable as hash key: {}", key.type_name())),
+        };
+
+        let value = eval_expression(value_node, env);
+        if let Object::Error(_) = value {
+            return value;
+        }
+
+        pairs.insert(hash_key, value);
+    }
+
+    Object::Hash(pairs)
+}
+
 fn eval_expressions(exps: Vec<Expression>, env: &mut Environment) -> Vec<Object> {
     let mut result = vec![];
 
@@ -285,11 +311,25 @@ fn eval_index_expression(left: Object, index: Object) -> Object {
         (Object::Array(elements), Object::Integer(idx)) => {
             eval_array_index_expression(elements, idx)
         },
+        (Object::Hash(pairs), index) => eval_hash_index_expression(pairs, index),
         (left, _) => Object::Error(format!("index operator not supported: {}", left.type_name())),
     }
 }
 
-    fn eval_array_index_expression(elements: Vec<Object>, index: f64) -> Object {
+fn eval_hash_index_expression(pairs: HashMap<ObjectKey, Object>, index: Object) -> Object {
+    let key = ObjectKey::from_object(&index);
+    match key {
+        Some(k) => {
+             if let Some(val) = pairs.get(&k) {
+                 return val.clone();
+             }
+             Object::Null
+        },
+        None => Object::Error(format!("unusable as hash key: {}", index.type_name())),
+    }
+}
+
+fn eval_array_index_expression(elements: Vec<Object>, index: f64) -> Object {
     if index < 0.0 {
         return Object::Null;
     }
@@ -654,6 +694,96 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_hash_literals() {
+        let input = "let two = \"two\";
+        {
+            \"one\": 10 - 9,
+            two: 1 + 1,
+            \"thr\" + \"ee\": 6 / 2,
+            4: 4,
+            true: 5,
+            false: 6
+        }";
+        
+        let evaluated = test_eval(input);
+        
+        match evaluated {
+            Object::Hash(pairs) => {
+                let expected = vec![
+                    (ObjectKey::String("one".to_string()), 1.0),
+                    (ObjectKey::String("two".to_string()), 2.0),
+                    (ObjectKey::String("three".to_string()), 3.0),
+                    (ObjectKey::Integer(4), 4.0),
+                    (ObjectKey::Boolean(true), 5.0),
+                    (ObjectKey::Boolean(false), 6.0),
+                ];
+                
+                assert_eq!(pairs.len(), 6);
+                
+                for (expected_key, expected_val) in expected {
+                    match pairs.get(&expected_key) {
+                        Some(val) => {
+                            match val {
+                                Object::Integer(v) => assert_eq!(*v, expected_val),
+                                _ => panic!("Expected Integer, got {:?}", val),
+                            }
+                        },
+                        None => panic!("no pair for given key: {:?}", expected_key),
+                    }
+                }
+            },
+            _ => panic!("Expected Hash, got {:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_hash_index_expressions() {
+        let tests = vec![
+            ("{\"foo\": 5}[\"foo\"]", 5.0),
+            ("{\"foo\": 5}[\"bar\"]", -1.0), // Using -1.0 to represent null for this test helper
+            ("let key = \"foo\"; {\"foo\": 5}[key]", 5.0),
+            ("{}[\"foo\"]", -1.0),
+            ("{5: 5}[5]", 5.0),
+            ("{true: 5}[true]", 5.0),
+            ("{false: 5}[false]", 5.0),
+        ];
+
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            if expected == -1.0 {
+                assert_eq!(evaluated, Object::Null, "input: {}", input);
+            } else {
+                match evaluated {
+                    Object::Integer(val) => assert_eq!(val, expected, "input: {}", input),
+                    _ => panic!("Expected Integer({}), got {:?}", expected, evaluated),
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_hash_member_expressions() {
+        let tests = vec![
+            ("{\"foo\": 5}.foo", 5.0),
+            ("{\"foo\": 5}.bar", -1.0),
+            ("let obj = {\"foo\": 5}; obj.foo", 5.0),
+            ("let obj = {\"foo\": 5}; obj.bar", -1.0),
+        ];
+        
+        for (input, expected) in tests {
+             let evaluated = test_eval(input);
+             if expected == -1.0 {
+                 assert_eq!(evaluated, Object::Null, "input: {}", input);
+             } else {
+                 match evaluated {
+                     Object::Integer(val) => assert_eq!(val, expected, "input: {}", input),
+                     _ => panic!("Expected Integer({}), got {:?}", expected, evaluated),
+                 }
+             }
+        }
+    }
+    
     #[test]
     fn test_error_handling() {
         let tests = vec![
