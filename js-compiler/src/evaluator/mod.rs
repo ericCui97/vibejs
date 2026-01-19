@@ -1,8 +1,12 @@
 use crate::ast::{Program, Statement, Expression};
-use crate::object::{Object, BuiltinFunction};
+use crate::object::{Object, BuiltinFunction, ObjectKey};
 use crate::object::environment::Environment;
+use std::collections::HashMap;
 
 pub fn eval(program: Program, env: &mut Environment) -> Object {
+    // Initialize console object
+    init_console(env);
+
     let mut result = Object::Null;
 
     for statement in program.statements {
@@ -17,6 +21,16 @@ pub fn eval(program: Program, env: &mut Environment) -> Object {
     }
 
     result
+}
+
+fn init_console(env: &mut Environment) {
+    let mut console_hash = HashMap::new();
+    console_hash.insert(
+        ObjectKey::String("log".to_string()),
+        Object::Builtin(builtin_print)
+    );
+    
+    env.set("console".to_string(), Object::Hash(console_hash));
 }
 
 fn eval_statement(stmt: Statement, env: &mut Environment) -> Object {
@@ -43,6 +57,26 @@ fn eval_expression(expr: Expression, env: &mut Environment) -> Object {
             }
             
             apply_function(function, args)
+        },
+        Expression::Member(member) => {
+            let left = eval_expression(member.object, env);
+            if let Object::Error(_) = left {
+                return left;
+            }
+            
+            match member.property {
+                Expression::Identifier(ident) => {
+                    if let Object::Hash(pairs) = left {
+                         let key = ObjectKey::String(ident.value.clone());
+                         if let Some(val) = pairs.get(&key) {
+                             return val.clone();
+                         }
+                         return Object::Null; // Property not found
+                    }
+                    Object::Error(format!("property access not supported on {}", left))
+                },
+                _ => Object::Error("property must be identifier".to_string()),
+            }
         },
         _ => Object::Null, // TODO: Implement other expressions
     }

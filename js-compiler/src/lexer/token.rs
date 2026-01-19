@@ -44,6 +44,7 @@ pub enum Token {
     LBracket,
     RBracket,
     Colon,
+    Dot,        // .
     
     EOF,
     Illegal,

@@ -6,16 +6,20 @@ function App() {
   const [code, setCode] = useState('let x = 10;\nlet arr = [1, 2, 3];\nlet obj = { a: 1, b: "hello" };');
   const [tokens, setTokens] = useState(null);
   const [ast, setAst] = useState(null);
+  const [logs, setLogs] = useState(null);
   const [error, setError] = useState(null);
 
   // Layout state (percentages)
   const [leftWidth, setLeftWidth] = useState(40);
   const [topHeight, setTopHeight] = useState(50);
+  const [rightTopHeight, setRightTopHeight] = useState(40); // Make AST smaller by default, Console larger
   
   const containerRef = useRef(null);
   const leftPanelRef = useRef(null);
+  const rightPanelRef = useRef(null);
   const isResizingHorizontal = useRef(false);
   const isResizingVertical = useRef(false);
+  const isResizingRightVertical = useRef(false);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -36,11 +40,21 @@ function App() {
           setTopHeight(newTopHeight);
         }
       }
+
+      if (isResizingRightVertical.current && rightPanelRef.current) {
+        const panelRect = rightPanelRef.current.getBoundingClientRect();
+        const newRightTopHeight = ((e.clientY - panelRect.top) / panelRect.height) * 100;
+        // Limit between 20% and 80%
+        if (newRightTopHeight > 20 && newRightTopHeight < 80) {
+            setRightTopHeight(newRightTopHeight);
+        }
+      }
     };
 
     const handleMouseUp = () => {
       isResizingHorizontal.current = false;
       isResizingVertical.current = false;
+      isResizingRightVertical.current = false;
       document.body.style.cursor = 'default';
       document.body.style.userSelect = 'auto';
     };
@@ -66,10 +80,17 @@ function App() {
     document.body.style.userSelect = 'none';
   };
 
+  const startRightVerticalResize = () => {
+    isResizingRightVertical.current = true;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  };
+
   const handleCompile = async () => {
     setError(null);
     setTokens(null);
     setAst(null);
+    setLogs(null);
     
     try {
       // Fetch Tokens
@@ -91,6 +112,16 @@ function App() {
       const astData = await astRes.json();
       if (!astRes.ok) throw new Error(astData.error || 'AST Compilation failed');
       setAst(astData);
+
+      // Fetch Execution Logs (Eval)
+      const evalRes = await fetch('http://localhost:3000/compile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, mode: 'eval' }),
+      });
+      const evalData = await evalRes.json();
+      if (!evalRes.ok) throw new Error(evalData.error || 'Evaluation failed');
+      setLogs(evalData.logs);
 
     } catch (err) {
       setError(err.message);
@@ -162,10 +193,11 @@ function App() {
           onMouseDown={startHorizontalResize}
         />
 
-        {/* Right Column: AST */}
-        <div className="panel-column" style={{ width: `${100 - leftWidth}%` }}>
-          <div className="panel-container" style={{ height: '100%' }}>
-             <div className="panel-header">AST & Execution Result</div>
+        {/* Right Column: AST and Console */}
+        <div className="panel-column" style={{ width: `${100 - leftWidth}%` }} ref={rightPanelRef}>
+          {/* Top: AST */}
+          <div className="panel-container" style={{ height: `${rightTopHeight}%` }}>
+             <div className="panel-header">AST</div>
              <div className="panel-content ast-view">
                {ast ? (
                  <ReactJson 
@@ -180,6 +212,23 @@ function App() {
                  <span className="placeholder">No AST generated</span>
                )}
              </div>
+          </div>
+
+          <div 
+            className="resize-handle-vertical"
+            onMouseDown={startRightVerticalResize}
+          />
+
+          {/* Bottom: Console Output */}
+          <div className="panel-container" style={{ height: `${100 - rightTopHeight}%` }}>
+            <div className="panel-header">Console Output</div>
+            <div className="panel-content console-view">
+              {logs ? (
+                <pre>{logs}</pre>
+              ) : (
+                <span className="placeholder">No output</span>
+              )}
+            </div>
           </div>
         </div>
 

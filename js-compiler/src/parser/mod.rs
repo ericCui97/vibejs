@@ -1,6 +1,6 @@
 use crate::lexer::Lexer;
 use crate::lexer::token::Token;
-use crate::ast::{Program, Statement, LetStatement, ReturnStatement, WhileStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, IfExpression, BlockStatement, FunctionLiteral, CallExpression, AssignmentExpression, ArrayLiteral, HashLiteral, StringLiteral, ForStatement};
+use crate::ast::{Program, Statement, LetStatement, ReturnStatement, WhileStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, IfExpression, BlockStatement, FunctionLiteral, CallExpression, AssignmentExpression, ArrayLiteral, HashLiteral, StringLiteral, ForStatement, MemberExpression};
 
 // Pratt Parser Precedence
 #[derive(PartialEq, PartialOrd)]
@@ -13,6 +13,7 @@ enum Precedence {
     Product,     // *
     Prefix,      // -X or !X
     Call,        // myFunction(X)
+    Index,       // array[index] or obj.prop
 }
 
 impl Precedence {
@@ -24,6 +25,7 @@ impl Precedence {
             Token::Plus | Token::Minus => Precedence::Sum,
             Token::Slash | Token::Asterisk => Precedence::Product,
             Token::LParen => Precedence::Call,
+            Token::Dot => Precedence::Index,
             _ => Precedence::Lowest,
         }
     }
@@ -36,7 +38,7 @@ pub struct Parser {
     lexer: Lexer,
     cur_token: Token,
     peek_token: Token,
-    errors: Vec<String>,
+    pub errors: Vec<String>,
 }
 
 impl Parser {
@@ -275,6 +277,7 @@ impl Parser {
             Token::Plus | Token::Minus | Token::Slash | Token::Asterisk | 
             Token::Eq | Token::NotEq | Token::Lt | Token::Gt => Some(Self::parse_infix_expression),
             Token::LParen => Some(Self::parse_call_expression),
+            Token::Dot => Some(Self::parse_member_expression),
             Token::Equal => Some(Self::parse_assignment_expression),
             _ => None,
         }
@@ -554,10 +557,26 @@ impl Parser {
         Some(args)
     }
 
+    fn parse_member_expression(&mut self, left: Expression) -> Option<Expression> {
+        let token = self.cur_token.clone();
+        
+        self.next_token(); // consume '.'
+        
+        // The property must be an identifier
+        let property = self.parse_identifier()?;
+        
+        Some(Expression::Member(Box::new(MemberExpression {
+            token,
+            object: left,
+            property,
+        })))
+    }
+
     fn parse_assignment_expression(&mut self, left: Expression) -> Option<Expression> {
         let token = self.cur_token.clone();
         
         // Ensure left is an identifier
+        // TODO: support member assignment
         let name = match left {
             Expression::Identifier(ident) => ident,
             _ => {
@@ -1341,6 +1360,44 @@ mod tests {
                 assert_eq!(for_stmt.body.statements.len(), 1);
             },
             _ => panic!("stmt not ForStatement"),
+        }
+    }
+
+    #[test]
+    fn test_member_expression() {
+        let input = "obj.prop;";
+        
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        
+        if !parser.errors.is_empty() {
+             for err in parser.errors {
+                 eprintln!("parser error: {}", err);
+             }
+             panic!("parser has errors");
+        }
+        
+        assert_eq!(program.statements.len(), 1);
+        
+        match &program.statements[0] {
+            Statement::Expression(stmt) => {
+                match &stmt.expression {
+                    Expression::Member(member) => {
+                        match &member.object {
+                            Expression::Identifier(ident) => assert_eq!(ident.value, "obj"),
+                            _ => panic!("object not Identifier"),
+                        }
+                        
+                        match &member.property {
+                            Expression::Identifier(ident) => assert_eq!(ident.value, "prop"),
+                            _ => panic!("property not Identifier"),
+                        }
+                    },
+                    _ => panic!("expression not Member"),
+                }
+            },
+            _ => panic!("stmt not ExpressionStatement"),
         }
     }
 }

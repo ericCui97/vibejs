@@ -128,6 +128,14 @@ pub enum Expression {
     Assign(Box<AssignmentExpression>),
     Array(Box<ArrayLiteral>),
     Hash(Box<HashLiteral>),
+    Member(Box<MemberExpression>),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct MemberExpression {
+    pub token: Token, // The '.' token
+    pub object: Expression,
+    pub property: Expression,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
@@ -182,6 +190,7 @@ impl Token {
             Token::LBracket => "[".to_string(),
             Token::RBracket => "]".to_string(),
             Token::Colon => ":".to_string(),
+            Token::Dot => ".".to_string(),
             // Add other token literals as needed
             _ => "".to_string(),
         }

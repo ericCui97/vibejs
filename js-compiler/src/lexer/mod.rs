@@ -103,6 +103,7 @@ impl Lexer {
             '[' => Token::LBracket,
             ']' => Token::RBracket,
             ':' => Token::Colon,
+            '.' => Token::Dot,
             ';' => Token::SemiColon,
             ',' => Token::Comma,
             '"' | '\'' => {
