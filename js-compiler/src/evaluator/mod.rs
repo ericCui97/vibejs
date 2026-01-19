@@ -118,6 +118,24 @@ fn eval_expression(expr: Expression, env: &mut Environment) -> Object {
             
             apply_function(function, args, env)
         },
+        Expression::Array(array) => {
+            let elements = eval_expressions(array.elements, env);
+            if elements.len() == 1 && matches!(elements[0], Object::Error(_)) {
+                return elements[0].clone();
+            }
+            Object::Array(elements)
+        },
+        Expression::Index(index) => {
+            let left = eval_expression(index.left, env);
+            if let Object::Error(_) = left {
+                return left;
+            }
+            let index_val = eval_expression(index.index, env);
+            if let Object::Error(_) = index_val {
+                return index_val;
+            }
+            eval_index_expression(left, index_val)
+        },
         Expression::Member(member) => {
             let left = eval_expression(member.object, env);
             if let Object::Error(_) = left {
@@ -260,6 +278,23 @@ fn eval_expressions(exps: Vec<Expression>, env: &mut Environment) -> Vec<Object>
     }
 
     result
+}
+
+fn eval_index_expression(left: Object, index: Object) -> Object {
+    match (left, index) {
+        (Object::Array(elements), Object::Integer(idx)) => {
+            eval_array_index_expression(elements, idx)
+        },
+        (left, _) => Object::Error(format!("index operator not supported: {}", left.type_name())),
+    }
+}
+
+fn eval_array_index_expression(elements: Vec<Object>, index: f64) -> Object {
+    let idx = index as usize;
+    if idx < elements.len() {
+        return elements[idx].clone();
+    }
+    Object::Null
 }
 
 fn apply_function(fn_obj: Object, args: Vec<Object>, env: &mut Environment) -> Object {

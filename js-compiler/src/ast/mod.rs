@@ -143,8 +143,16 @@ pub enum Expression {
     Call(Box<CallExpression>),
     Assign(Box<AssignmentExpression>),
     Array(Box<ArrayLiteral>),
+    Index(Box<IndexExpression>),
     Hash(Box<HashLiteral>),
     Member(Box<MemberExpression>),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct IndexExpression {
+    pub token: Token, // The '[' token
+    pub left: Expression,
+    pub index: Expression,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

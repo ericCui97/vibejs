@@ -25,7 +25,7 @@ impl Precedence {
             Token::Plus | Token::Minus => Precedence::Sum,
             Token::Slash | Token::Asterisk => Precedence::Product,
             Token::LParen => Precedence::Call,
-            Token::Dot => Precedence::Index,
+            Token::Dot | Token::LBracket => Precedence::Index,
             _ => Precedence::Lowest,
         }
     }
@@ -285,10 +285,28 @@ impl Parser {
             Token::LParen => Some(Self::parse_call_expression),
             Token::Dot => Some(Self::parse_member_expression),
             Token::Equal => Some(Self::parse_assignment_expression),
+            Token::LBracket => Some(Self::parse_index_expression),
             _ => None,
         }
     }
     
+    fn parse_index_expression(&mut self, left: Expression) -> Option<Expression> {
+        let token = self.cur_token.clone();
+        
+        self.next_token();
+        let index = self.parse_expression(Precedence::Lowest)?;
+        
+        if !self.expect_peek(Token::RBracket) {
+            return None;
+        }
+        
+        Some(Expression::Index(Box::new(crate::ast::IndexExpression {
+            token,
+            left,
+            index,
+        })))
+    }
+
     fn parse_identifier(&mut self) -> Option<Expression> {
         match &self.cur_token {
             Token::Identifier(s) => Some(Expression::Identifier(Identifier {

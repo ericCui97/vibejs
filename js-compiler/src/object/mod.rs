@@ -16,6 +16,7 @@ pub enum Object {
     Error(String),
     Builtin(BuiltinFunction),
     Hash(HashMap<ObjectKey, Object>),
+    Array(Vec<Object>),
     Function(Vec<Identifier>, BlockStatement, environment::Environment),
 }
 
@@ -30,6 +31,7 @@ impl Object {
             Object::Error(_) => "ERROR",
             Object::Builtin(_) => "BUILTIN",
             Object::Hash(_) => "HASH",
+            Object::Array(_) => "ARRAY",
             Object::Function(_, _, _) => "FUNCTION",
         }
     }
@@ -70,6 +72,13 @@ impl fmt::Display for Object {
                     strings.push(format!("{}: {}", key, value));
                 }
                 write!(f, "{{{}}}", strings.join(", "))
+            },
+            Object::Array(elements) => {
+                let mut strings = vec![];
+                for el in elements {
+                    strings.push(format!("{}", el));
+                }
+                write!(f, "[{}]", strings.join(", "))
             },
             Object::Function(params, _, _) => {
                 let mut params_string = vec![];
