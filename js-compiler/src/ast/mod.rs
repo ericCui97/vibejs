@@ -58,10 +58,18 @@ pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
 
+use std::fmt;
+
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Identifier {
     pub token: Token, // Token::Identifier
     pub value: String,
+}
+
+impl fmt::Display for Identifier {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

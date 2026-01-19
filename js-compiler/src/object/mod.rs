@@ -1,5 +1,6 @@
 pub mod environment;
 
+use crate::ast::{Identifier, BlockStatement};
 use std::fmt;
 
 use std::collections::HashMap;
@@ -15,6 +16,7 @@ pub enum Object {
     Error(String),
     Builtin(BuiltinFunction),
     Hash(HashMap<ObjectKey, Object>),
+    Function(Vec<Identifier>, BlockStatement, environment::Environment),
 }
 
 impl Object {
@@ -28,6 +30,7 @@ impl Object {
             Object::Error(_) => "ERROR",
             Object::Builtin(_) => "BUILTIN",
             Object::Hash(_) => "HASH",
+            Object::Function(_, _, _) => "FUNCTION",
         }
     }
 }
@@ -67,6 +70,13 @@ impl fmt::Display for Object {
                     strings.push(format!("{}: {}", key, value));
                 }
                 write!(f, "{{{}}}", strings.join(", "))
+            },
+            Object::Function(params, _, _) => {
+                let mut params_string = vec![];
+                for param in params {
+                    params_string.push(param.to_string());
+                }
+                write!(f, "fn({}) {{ ... }}", params_string.join(", "))
             },
         }
     }

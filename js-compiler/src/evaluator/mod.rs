@@ -100,6 +100,11 @@ fn eval_expression(expr: Expression, env: &mut Environment) -> Object {
             eval_if_expression(if_expr.condition, if_expr.consequence, if_expr.alternative, env)
         },
         Expression::Identifier(ident) => eval_identifier(ident.value, env),
+        Expression::FunctionLiteral(func) => {
+            let params = func.parameters;
+            let body = func.body;
+            Object::Function(params, body, env.clone())
+        },
         Expression::Call(call) => {
             let function = eval_expression(call.function, env);
             if let Object::Error(_) = function {
@@ -259,9 +264,37 @@ fn eval_expressions(exps: Vec<Expression>, env: &mut Environment) -> Vec<Object>
 
 fn apply_function(fn_obj: Object, args: Vec<Object>) -> Object {
     match fn_obj {
+        Object::Function(params, body, env) => {
+            let mut extended_env = extend_function_env(env, params, args);
+            let evaluated = eval_block_statement(body, &mut extended_env);
+            unwrap_return_value(evaluated)
+        },
         Object::Builtin(func) => func(args),
         _ => Object::Error(format!("not a function: {}", fn_obj)),
     }
+}
+
+fn extend_function_env(
+    env: Environment,
+    params: Vec<crate::ast::Identifier>,
+    args: Vec<Object>,
+) -> Environment {
+    let mut enclosed = Environment::new_enclosed(env);
+
+    for (i, param) in params.iter().enumerate() {
+        if i < args.len() {
+            enclosed.set(param.value.clone(), args[i].clone());
+        }
+    }
+
+    enclosed
+}
+
+fn unwrap_return_value(obj: Object) -> Object {
+    if let Object::ReturnValue(val) = obj {
+        return *val;
+    }
+    obj
 }
 
 // Builtins
@@ -455,6 +488,58 @@ mod tests {
                 Object::Integer(val) => assert_eq!(val, expected),
                 _ => panic!("Expected Integer({}), got {:?}", expected, evaluated),
             }
+        }
+    }
+
+    #[test]
+    fn test_function_object() {
+        let input = "function(x) { x + 2; };";
+        let evaluated = test_eval(input);
+        
+        match evaluated {
+            Object::Function(params, body, _) => {
+                assert_eq!(params.len(), 1);
+                assert_eq!(params[0].value, "x");
+                assert_eq!(body.statements.len(), 1);
+            },
+            _ => panic!("object is not Function. got={:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_function_application() {
+        let tests = vec![
+            ("let identity = function(x) { x; }; identity(5);", 5.0),
+            ("let identity = function(x) { return x; }; identity(5);", 5.0),
+            ("let double = function(x) { x * 2; }; double(5);", 10.0),
+            ("let add = function(x, y) { x + y; }; add(5, 5);", 10.0),
+            ("let add = function(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20.0),
+            ("function(x) { x; }(5)", 5.0),
+        ];
+
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            match evaluated {
+                Object::Integer(val) => assert_eq!(val, expected),
+                _ => panic!("Expected Integer({}), got {:?}", expected, evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_closures() {
+        let input = "
+            let newAdder = function(x) {
+                function(y) { x + y };
+            };
+            let addTwo = newAdder(2);
+            addTwo(2);
+        ";
+        let evaluated = test_eval(input);
+        
+        match evaluated {
+            Object::Integer(val) => assert_eq!(val, 4.0),
+            _ => panic!("Expected Integer(4), got {:?}", evaluated),
         }
     }
 
