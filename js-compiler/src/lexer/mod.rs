@@ -31,6 +31,30 @@ mod tests_hash {
         assert_eq!(lexer.next_token(), Token::SemiColon);
         assert_eq!(lexer.next_token(), Token::EOF);
     }
+    #[test]
+    fn test_comments() {
+        let input = "
+            let x = 5;
+            // This is a comment
+            let y = 10; // Inline comment
+            // Final comment
+        ";
+        let mut lexer = Lexer::new(input);
+
+        assert_eq!(lexer.next_token(), Token::Let);
+        assert_eq!(lexer.next_token(), Token::Identifier("x".to_string()));
+        assert_eq!(lexer.next_token(), Token::Equal);
+        assert_eq!(lexer.next_token(), Token::Number(5.0));
+        assert_eq!(lexer.next_token(), Token::SemiColon);
+        
+        assert_eq!(lexer.next_token(), Token::Let);
+        assert_eq!(lexer.next_token(), Token::Identifier("y".to_string()));
+        assert_eq!(lexer.next_token(), Token::Equal);
+        assert_eq!(lexer.next_token(), Token::Number(10.0));
+        assert_eq!(lexer.next_token(), Token::SemiColon);
+        
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
 }
 
 impl Lexer {
@@ -93,7 +117,14 @@ impl Lexer {
             }
             '-' => Token::Minus,
             '*' => Token::Asterisk,
-            '/' => Token::Slash,
+            '/' => {
+                if self.peek_char() == '/' {
+                    self.skip_comment();
+                    return self.next_token();
+                } else {
+                    Token::Slash
+                }
+            }
             '<' => Token::Lt,
             '>' => Token::Gt,
             '(' => Token::LParen,
@@ -131,6 +162,13 @@ impl Lexer {
         while self.ch.is_whitespace() {
             self.read_char();
         }
+    }
+    
+    fn skip_comment(&mut self) {
+        while self.ch != '\n' && self.ch != '\0' {
+            self.read_char();
+        }
+        self.skip_whitespace();
     }
 
     fn read_identifier(&mut self) -> Token {
