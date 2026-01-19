@@ -44,6 +44,25 @@ fn eval_expression(expr: Expression, env: &mut Environment) -> Object {
     match expr {
         Expression::IntegerLiteral(int) => Object::Integer(int.value),
         Expression::StringLiteral(string) => Object::String(string.value),
+        Expression::Boolean(boolean) => Object::Boolean(boolean.value),
+        Expression::Prefix(prefix) => {
+            let right = eval_expression(prefix.right, env);
+            if let Object::Error(_) = right {
+                return right;
+            }
+            eval_prefix_expression(prefix.operator, right)
+        },
+        Expression::Infix(infix) => {
+            let left = eval_expression(infix.left, env);
+            if let Object::Error(_) = left {
+                return left;
+            }
+            let right = eval_expression(infix.right, env);
+            if let Object::Error(_) = right {
+                return right;
+            }
+            eval_infix_expression(infix.operator, left, right)
+        },
         Expression::Identifier(ident) => eval_identifier(ident.value, env),
         Expression::Call(call) => {
             let function = eval_expression(call.function, env);
@@ -79,6 +98,76 @@ fn eval_expression(expr: Expression, env: &mut Environment) -> Object {
             }
         },
         _ => Object::Null, // TODO: Implement other expressions
+    }
+}
+
+fn eval_prefix_expression(operator: String, right: Object) -> Object {
+    match operator.as_str() {
+        "!" => eval_bang_operator_expression(right),
+        "-" => eval_minus_prefix_operator_expression(right),
+        _ => Object::Error(format!("unknown operator: {}{}", operator, right)),
+    }
+}
+
+fn eval_bang_operator_expression(right: Object) -> Object {
+    match right {
+        Object::Boolean(true) => Object::Boolean(false),
+        Object::Boolean(false) => Object::Boolean(true),
+        Object::Null => Object::Boolean(true),
+        _ => Object::Boolean(false),
+    }
+}
+
+fn eval_minus_prefix_operator_expression(right: Object) -> Object {
+    match right {
+        Object::Integer(value) => Object::Integer(-value),
+        _ => Object::Error(format!("unknown operator: -{}", right)),
+    }
+}
+
+fn eval_infix_expression(operator: String, left: Object, right: Object) -> Object {
+    match (left.clone(), right.clone()) {
+        (Object::Integer(left_val), Object::Integer(right_val)) => {
+            eval_integer_infix_expression(operator, left_val, right_val)
+        },
+        (Object::String(left_val), Object::String(right_val)) => {
+            eval_string_infix_expression(operator, left_val, right_val)
+        },
+        (Object::Boolean(left_val), Object::Boolean(right_val)) => {
+            eval_boolean_infix_expression(operator, left_val, right_val)
+        },
+        _ => Object::Error(format!("type mismatch: {} {} {}", left, operator, right)),
+    }
+}
+
+fn eval_integer_infix_expression(operator: String, left: f64, right: f64) -> Object {
+    match operator.as_str() {
+        "+" => Object::Integer(left + right),
+        "-" => Object::Integer(left - right),
+        "*" => Object::Integer(left * right),
+        "/" => Object::Integer(left / right),
+        "<" => Object::Boolean(left < right),
+        ">" => Object::Boolean(left > right),
+        "==" => Object::Boolean(left == right),
+        "!=" => Object::Boolean(left != right),
+        _ => Object::Error(format!("unknown operator: INTEGER {} INTEGER", operator)),
+    }
+}
+
+fn eval_string_infix_expression(operator: String, left: String, right: String) -> Object {
+    match operator.as_str() {
+        "+" => Object::String(format!("{}{}", left, right)),
+        "==" => Object::Boolean(left == right),
+        "!=" => Object::Boolean(left != right),
+        _ => Object::Error(format!("unknown operator: STRING {} STRING", operator)),
+    }
+}
+
+fn eval_boolean_infix_expression(operator: String, left: bool, right: bool) -> Object {
+    match operator.as_str() {
+        "==" => Object::Boolean(left == right),
+        "!=" => Object::Boolean(left != right),
+        _ => Object::Error(format!("unknown operator: BOOLEAN {} BOOLEAN", operator)),
     }
 }
 
@@ -150,10 +239,76 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_boolean_expression() {
+        let tests = vec![
+            ("true", true),
+            ("false", false),
+            ("1 < 2", true),
+            ("1 > 2", false),
+            ("1 < 1", false),
+            ("1 > 1", false),
+            ("1 == 1", true),
+            ("1 != 1", false),
+            ("1 == 2", false),
+            ("1 != 2", true),
+            ("true == true", true),
+            ("false == false", true),
+            ("true == false", false),
+            ("true != false", true),
+            ("false != true", true),
+            ("(1 < 2) == true", true),
+            ("(1 < 2) == false", false),
+            ("(1 > 2) == true", false),
+            ("(1 > 2) == false", true),
+        ];
+
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            match evaluated {
+                Object::Boolean(val) => assert_eq!(val, expected, "input: {}", input),
+                _ => panic!("object is not Boolean. got={:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
+    fn test_bang_operator() {
+        let tests = vec![
+            ("!true", false),
+            ("!false", true),
+            ("!5", false),
+            ("!!true", true),
+            ("!!false", false),
+            ("!!5", true),
+        ];
+
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            match evaluated {
+                Object::Boolean(val) => assert_eq!(val, expected, "input: {}", input),
+                _ => panic!("object is not Boolean. got={:?}", evaluated),
+            }
+        }
+    }
+
+    #[test]
     fn test_eval_integer_expression() {
         let tests = vec![
             ("5", 5.0),
             ("10", 10.0),
+            ("-5", -5.0),
+            ("-10", -10.0),
+            ("5 + 5 + 5 + 5 - 10", 10.0),
+            ("2 * 2 * 2 * 2 * 2", 32.0),
+            ("-50 + 100 + -50", 0.0),
+            ("5 * 2 + 10", 20.0),
+            ("5 + 2 * 10", 25.0),
+            ("20 + 2 * -10", 0.0),
+            ("50 / 2 * 2 + 10", 60.0),
+            ("2 * (5 + 10)", 30.0),
+            ("3 * 3 * 3 + 10", 37.0),
+            ("3 * (3 * 3) + 10", 37.0),
+            ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50.0),
         ];
 
         for (input, expected) in tests {

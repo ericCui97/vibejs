@@ -76,6 +76,12 @@ pub struct StringLiteral {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct BooleanLiteral {
+    pub token: Token, // Token::True or Token::False
+    pub value: bool,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct PrefixExpression {
     pub token: Token, // The prefix token, e.g. !
     pub operator: String,
@@ -120,6 +126,7 @@ pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
     StringLiteral(StringLiteral),
+    Boolean(BooleanLiteral),
     Prefix(Box<PrefixExpression>),
     Infix(Box<InfixExpression>),
     If(Box<IfExpression>),

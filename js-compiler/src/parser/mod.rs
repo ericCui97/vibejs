@@ -1,6 +1,6 @@
 use crate::lexer::Lexer;
 use crate::lexer::token::Token;
-use crate::ast::{Program, Statement, LetStatement, ReturnStatement, WhileStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, IfExpression, BlockStatement, FunctionLiteral, CallExpression, AssignmentExpression, ArrayLiteral, HashLiteral, StringLiteral, ForStatement, MemberExpression};
+use crate::ast::{Program, Statement, LetStatement, ReturnStatement, WhileStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, IfExpression, BlockStatement, FunctionLiteral, CallExpression, AssignmentExpression, ArrayLiteral, HashLiteral, StringLiteral, ForStatement, MemberExpression, BooleanLiteral};
 
 // Pratt Parser Precedence
 #[derive(PartialEq, PartialOrd)]
@@ -263,7 +263,9 @@ impl Parser {
             Token::Identifier(_) => Some(Self::parse_identifier),
             Token::Number(_) => Some(Self::parse_number),
             Token::String(_) => Some(Self::parse_string_literal),
+            Token::True | Token::False => Some(Self::parse_boolean),
             Token::Bang | Token::Minus => Some(Self::parse_prefix_expression),
+            Token::LParen => Some(Self::parse_grouped_expression),
             Token::If => Some(Self::parse_if_expression),
             Token::Function => Some(Self::parse_function_literal),
             Token::LBracket => Some(Self::parse_array_literal),
@@ -312,6 +314,13 @@ impl Parser {
             _ => None,
         }
     }
+
+    fn parse_boolean(&mut self) -> Option<Expression> {
+        Some(Expression::Boolean(BooleanLiteral {
+            token: self.cur_token.clone(),
+            value: self.cur_token_is(Token::True),
+        }))
+    }
     
     fn parse_prefix_expression(&mut self) -> Option<Expression> {
         let token = self.cur_token.clone();
@@ -328,6 +337,18 @@ impl Parser {
         })))
     }
     
+    fn parse_grouped_expression(&mut self) -> Option<Expression> {
+        self.next_token();
+        
+        let exp = self.parse_expression(Precedence::Lowest);
+        
+        if !self.expect_peek(Token::RParen) {
+            return None;
+        }
+        
+        exp
+    }
+
     fn parse_infix_expression(&mut self, left: Expression) -> Option<Expression> {
         let token = self.cur_token.clone();
         let operator = token.literal();
