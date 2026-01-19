@@ -116,7 +116,7 @@ fn eval_expression(expr: Expression, env: &mut Environment) -> Object {
                 return args[0].clone();
             }
             
-            apply_function(function, args)
+            apply_function(function, args, env)
         },
         Expression::Member(member) => {
             let left = eval_expression(member.object, env);
@@ -262,14 +262,17 @@ fn eval_expressions(exps: Vec<Expression>, env: &mut Environment) -> Vec<Object>
     result
 }
 
-fn apply_function(fn_obj: Object, args: Vec<Object>) -> Object {
+fn apply_function(fn_obj: Object, args: Vec<Object>, env: &mut Environment) -> Object {
     match fn_obj {
-        Object::Function(params, body, env) => {
-            let mut extended_env = extend_function_env(env, params, args);
+        Object::Function(params, body, fn_env) => {
+            let mut extended_env = extend_function_env(fn_env, params, args);
+            // We need to share the output buffer with the extended environment
+            extended_env.output = env.output.clone();
+            
             let evaluated = eval_block_statement(body, &mut extended_env);
             unwrap_return_value(evaluated)
         },
-        Object::Builtin(func) => func(args),
+        Object::Builtin(func) => func(args, env),
         _ => Object::Error(format!("not a function: {}", fn_obj)),
     }
 }
@@ -306,14 +309,21 @@ fn get_builtin(name: &str) -> Option<BuiltinFunction> {
     }
 }
 
-fn builtin_print(args: Vec<Object>) -> Object {
+fn builtin_print(args: Vec<Object>, env: &mut Environment) -> Object {
+    let mut output = String::new();
     for (i, arg) in args.iter().enumerate() {
         if i > 0 {
-            print!(" ");
+            output.push(' ');
         }
-        print!("{}", arg);
+        output.push_str(&format!("{}", arg));
     }
-    println!();
+    
+    // Print to stdout
+    println!("{}", output);
+    
+    // Capture output
+    env.output.borrow_mut().push(output);
+    
     Object::Null
 }
 
@@ -493,7 +503,7 @@ mod tests {
 
     #[test]
     fn test_function_object() {
-        let input = "function(x) { x + 2; };";
+        let input = "fn(x) { x + 2; };";
         let evaluated = test_eval(input);
         
         match evaluated {
@@ -509,12 +519,12 @@ mod tests {
     #[test]
     fn test_function_application() {
         let tests = vec![
-            ("let identity = function(x) { x; }; identity(5);", 5.0),
-            ("let identity = function(x) { return x; }; identity(5);", 5.0),
-            ("let double = function(x) { x * 2; }; double(5);", 10.0),
-            ("let add = function(x, y) { x + y; }; add(5, 5);", 10.0),
-            ("let add = function(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20.0),
-            ("function(x) { x; }(5)", 5.0),
+            ("let identity = fn(x) { x; }; identity(5);", 5.0),
+            ("let identity = fn(x) { return x; }; identity(5);", 5.0),
+            ("let double = fn(x) { x * 2; }; double(5);", 10.0),
+            ("let add = fn(x, y) { x + y; }; add(5, 5);", 10.0),
+            ("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20.0),
+            ("fn(x) { x; }(5)", 5.0),
         ];
 
         for (input, expected) in tests {
@@ -529,8 +539,8 @@ mod tests {
     #[test]
     fn test_closures() {
         let input = "
-            let newAdder = function(x) {
-                function(y) { x + y };
+            let newAdder = fn(x) {
+                fn(y) { x + y };
             };
             let addTwo = newAdder(2);
             addTwo(2);

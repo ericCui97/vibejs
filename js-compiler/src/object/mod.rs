@@ -92,4 +92,4 @@ impl fmt::Display for ObjectKey {
     }
 }
 
-pub type BuiltinFunction = fn(Vec<Object>) -> Object;
+pub type BuiltinFunction = fn(Vec<Object>, &mut environment::Environment) -> Object;

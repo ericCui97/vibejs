@@ -597,7 +597,7 @@ impl Parser {
         })))
     }
 
-    fn parse_assignment_expression(&mut self, left: Expression) -> Option<Expression> {
+    pub fn parse_assignment_expression(&mut self, left: Expression) -> Option<Expression> {
         let token = self.cur_token.clone();
         
         // Ensure left is an identifier

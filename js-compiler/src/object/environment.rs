@@ -1,10 +1,13 @@
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::object::Object;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Environment {
     store: HashMap<String, Object>,
     outer: Option<Box<Environment>>,
+    pub output: Rc<RefCell<Vec<String>>>,
 }
 
 impl Environment {
@@ -12,13 +15,16 @@ impl Environment {
         Environment {
             store: HashMap::new(),
             outer: None,
+            output: Rc::new(RefCell::new(Vec::new())),
         }
     }
 
     pub fn new_enclosed(outer: Environment) -> Self {
+        let output = outer.output.clone();
         Environment {
             store: HashMap::new(),
             outer: Some(Box::new(outer)),
+            output,
         }
     }
 
