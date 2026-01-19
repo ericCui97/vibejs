@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactJson from 'react-json-view';
+import Editor from '@monaco-editor/react';
 import './App.css';
 
 function App() {
@@ -162,12 +163,22 @@ function App() {
           {/* Top: Code Editor */}
           <div className="panel-container" style={{ height: `${topHeight}%` }}>
             <div className="panel-header">Input Code</div>
-            <textarea
-              className="code-editor"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Enter JS code here..."
-            />
+            <div className="code-editor-wrapper">
+              <Editor
+                height="100%"
+                defaultLanguage="javascript"
+                theme="vs-dark"
+                value={code}
+                onChange={(value) => setCode(value)}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  wordWrap: 'on',
+                  automaticLayout: true,
+                  padding: { top: 10 }
+                }}
+              />
+            </div>
           </div>
 
           <div 
