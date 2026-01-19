@@ -44,8 +44,9 @@
 - [x] **Hash Literal**: 解析 `{ a: 1, b: 2 }`。
 
 ### 阶段 4: 解释器 (Interpreter)
-- [ ] **Object System**: 定义运行时对象系统 (`Integer`, `Boolean`, `Null`, `ReturnValue`, `Error`) 和环境 (`Environment`)。
-- [ ] **Evaluator Basics**: 实现基本的求值循环 (`Eval` trait)，支持字面量求值。
+- [x] **Object System**: 定义运行时对象系统 (`Integer`, `Boolean`, `Null`, `ReturnValue`, `Error`) 和环境 (`Environment`)。
+- [x] **Evaluator Basics**: 实现基本的求值循环 (`Eval` trait)，支持字面量求值。
+- [x] **Builtin Functions**: 实现 `print` 函数。
 - [ ] **Expression Evaluation**: 支持前缀 (`!`, `-`) 和中缀 (`+`, `-`, `*`, `/`, `>`, `<`, `==`, `!=`) 表达式求值。
 - [ ] **Statement Evaluation**: 支持 `let` 绑定, `return`, `if/else` 控制流。
 - [ ] **Function Application**: 支持函数调用和闭包。
