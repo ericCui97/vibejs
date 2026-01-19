@@ -5,15 +5,15 @@ use crate::object::Object;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Environment {
-    store: HashMap<String, Object>,
-    outer: Option<Box<Environment>>,
+    store: Rc<RefCell<HashMap<String, Object>>>,
+    outer: Option<Rc<Environment>>,
     pub output: Rc<RefCell<Vec<String>>>,
 }
 
 impl Environment {
     pub fn new() -> Self {
         Environment {
-            store: HashMap::new(),
+            store: Rc::new(RefCell::new(HashMap::new())),
             outer: None,
             output: Rc::new(RefCell::new(Vec::new())),
         }
@@ -22,14 +22,14 @@ impl Environment {
     pub fn new_enclosed(outer: Environment) -> Self {
         let output = outer.output.clone();
         Environment {
-            store: HashMap::new(),
-            outer: Some(Box::new(outer)),
+            store: Rc::new(RefCell::new(HashMap::new())),
+            outer: Some(Rc::new(outer)),
             output,
         }
     }
 
     pub fn get(&self, name: &str) -> Option<Object> {
-        match self.store.get(name) {
+        match self.store.borrow().get(name) {
             Some(obj) => Some(obj.clone()),
             None => match &self.outer {
                 Some(outer) => outer.get(name),
@@ -39,7 +39,7 @@ impl Environment {
     }
 
     pub fn set(&mut self, name: String, val: Object) -> Object {
-        self.store.insert(name, val.clone());
+        self.store.borrow_mut().insert(name, val.clone());
         val
     }
 }

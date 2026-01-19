@@ -71,6 +71,7 @@ impl fmt::Display for Object {
                 for (key, value) in pairs {
                     strings.push(format!("{}: {}", key, value));
                 }
+                strings.sort(); // Sort to ensure deterministic output
                 write!(f, "{{{}}}", strings.join(", "))
             },
             Object::Array(elements) => {
