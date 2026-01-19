@@ -289,7 +289,10 @@ fn eval_index_expression(left: Object, index: Object) -> Object {
     }
 }
 
-fn eval_array_index_expression(elements: Vec<Object>, index: f64) -> Object {
+    fn eval_array_index_expression(elements: Vec<Object>, index: f64) -> Object {
+    if index < 0.0 {
+        return Object::Null;
+    }
     let idx = index as usize;
     if idx < elements.len() {
         return elements[idx].clone();
@@ -538,7 +541,7 @@ mod tests {
 
     #[test]
     fn test_function_object() {
-        let input = "fn(x) { x + 2; };";
+        let input = "function(x) { x + 2; };";
         let evaluated = test_eval(input);
         
         match evaluated {
@@ -554,12 +557,12 @@ mod tests {
     #[test]
     fn test_function_application() {
         let tests = vec![
-            ("let identity = fn(x) { x; }; identity(5);", 5.0),
-            ("let identity = fn(x) { return x; }; identity(5);", 5.0),
-            ("let double = fn(x) { x * 2; }; double(5);", 10.0),
-            ("let add = fn(x, y) { x + y; }; add(5, 5);", 10.0),
-            ("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20.0),
-            ("fn(x) { x; }(5)", 5.0),
+            ("let identity = function(x) { x; }; identity(5);", 5.0),
+            ("let identity = function(x) { return x; }; identity(5);", 5.0),
+            ("let double = function(x) { x * 2; }; double(5);", 10.0),
+            ("let add = function(x, y) { x + y; }; add(5, 5);", 10.0),
+            ("let add = function(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20.0),
+            ("function(x) { x; }(5)", 5.0),
         ];
 
         for (input, expected) in tests {
@@ -574,8 +577,8 @@ mod tests {
     #[test]
     fn test_closures() {
         let input = "
-            let newAdder = fn(x) {
-                fn(y) { x + y };
+            let newAdder = function(x) {
+                function(y) { x + y };
             };
             let addTwo = newAdder(2);
             addTwo(2);
@@ -585,6 +588,69 @@ mod tests {
         match evaluated {
             Object::Integer(val) => assert_eq!(val, 4.0),
             _ => panic!("Expected Integer(4), got {:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_array_literals() {
+        let input = "[1, 2 * 2, 3 + 3]";
+        let evaluated = test_eval(input);
+        
+        match evaluated {
+            Object::Array(elements) => {
+                assert_eq!(elements.len(), 3);
+                match &elements[0] {
+                    Object::Integer(val) => assert_eq!(*val, 1.0),
+                    _ => panic!("expected Integer, got {:?}", elements[0]),
+                }
+                match &elements[1] {
+                    Object::Integer(val) => assert_eq!(*val, 4.0),
+                    _ => panic!("expected Integer, got {:?}", elements[1]),
+                }
+                match &elements[2] {
+                    Object::Integer(val) => assert_eq!(*val, 6.0),
+                    _ => panic!("expected Integer, got {:?}", elements[2]),
+                }
+            },
+            _ => panic!("object is not Array. got={:?}", evaluated),
+        }
+    }
+
+    #[test]
+    fn test_array_index_expressions() {
+        let tests = vec![
+            ("[1, 2, 3][0]", 1.0),
+            ("[1, 2, 3][1]", 2.0),
+            ("[1, 2, 3][2]", 3.0),
+            ("let i = 0; [1][i];", 1.0),
+            ("[1, 2, 3][1 + 1];", 3.0),
+            ("let myArray = [1, 2, 3]; myArray[2];", 3.0),
+            ("let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", 6.0),
+            ("let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", 2.0),
+        ];
+
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            match evaluated {
+                Object::Integer(val) => assert_eq!(val, expected),
+                _ => panic!("test failed for '{}': expected {}, got {:?}", input, expected, evaluated),
+            }
+        }
+    }
+    
+    #[test]
+    fn test_array_index_expression_null() {
+        let tests = vec![
+            "[1, 2, 3][3]",
+            "[1, 2, 3][-1]",
+        ];
+
+        for input in tests {
+            let evaluated = test_eval(input);
+            match evaluated {
+                Object::Null => {},
+                _ => panic!("test failed for '{}': expected Null, got {:?}", input, evaluated),
+            }
         }
     }
 

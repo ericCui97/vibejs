@@ -21,7 +21,7 @@ description: "强制执行 TDD 工作流并更新可视化网页。在实现功�
     - **测试**：在 `parser/mod.rs` 添加对应的单元测试并确保通过。
 3.  **Evaluator 实现**（如果适用）：
     - 在 `evaluator/mod.rs` 实现求值逻辑。
-    - **测试**：添加对应的单元测试。
+    - **测试**：在 `evaluator/mod.rs` 添加对应的单元测试（涵盖各种边界情况）。
 4.  **集成测试 (MANDATORY)**：
     - 在 `js-compiler/tests/fixtures/` 添加新的 `.js` 测试用例文件。
     - 添加对应的 `.expected` 预期输出文件。
@@ -42,8 +42,12 @@ description: "强制执行 TDD 工作流并更新可视化网页。在实现功�
 - **Push 代码**：在完成所有任务后，立即执行 `git push` 上传代码。
 
 ## 3. 测试要求
-- **强制单元测试**：Lexer 和 Parser 的每个新特性都必须有对应的 `#[test]`。
-- **强制集成测试**：任何涉及执行流或输出的变更，必须通过 Integration Tests。
+- **强制单元测试 (Unit Tests)**：
+    - Lexer (`lexer/mod.rs`): 覆盖所有新 Token 解析。
+    - Parser (`parser/mod.rs`): 覆盖 AST 构建正确性。
+    - Evaluator (`evaluator/mod.rs`): 覆盖对象求值、环境查找、边界条件（如数组越界、类型错误）。
+- **强制集成测试 (Integration Tests)**：
+    - 任何涉及执行流或输出的变更，必须通过 Integration Tests。
 - **运行测试**：开发过程中频繁运行 `cargo test`。
 
 ## 4. 可视化网页架构
