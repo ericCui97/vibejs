@@ -1,12 +1,70 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import ReactJson from 'react-json-view';
 import './App.css';
 
 function App() {
-  const [code, setCode] = useState('let x = 10;');
+  const [code, setCode] = useState('let x = 10;\nlet arr = [1, 2, 3];\nlet obj = { a: 1, b: "hello" };');
   const [tokens, setTokens] = useState(null);
   const [ast, setAst] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('tokens'); // 'tokens' or 'ast'
+
+  // Layout state (percentages)
+  const [leftWidth, setLeftWidth] = useState(40);
+  const [topHeight, setTopHeight] = useState(50);
+  
+  const containerRef = useRef(null);
+  const leftPanelRef = useRef(null);
+  const isResizingHorizontal = useRef(false);
+  const isResizingVertical = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isResizingHorizontal.current && containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+        // Limit between 20% and 80%
+        if (newLeftWidth > 20 && newLeftWidth < 80) {
+          setLeftWidth(newLeftWidth);
+        }
+      }
+      
+      if (isResizingVertical.current && leftPanelRef.current) {
+        const panelRect = leftPanelRef.current.getBoundingClientRect();
+        const newTopHeight = ((e.clientY - panelRect.top) / panelRect.height) * 100;
+        // Limit between 20% and 80%
+        if (newTopHeight > 20 && newTopHeight < 80) {
+          setTopHeight(newTopHeight);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      isResizingHorizontal.current = false;
+      isResizingVertical.current = false;
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const startHorizontalResize = () => {
+    isResizingHorizontal.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const startVerticalResize = () => {
+    isResizingVertical.current = true;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   const handleCompile = async () => {
     setError(null);
@@ -55,57 +113,76 @@ function App() {
 
   return (
     <div className="container">
-      <h1>JS Compiler Visualizer</h1>
-      
-      <div className="editor-section">
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Enter JS code here..."
-          rows={10}
-        />
-        <button onClick={handleCompile}>Compile</button>
-      </div>
+      <header className="header">
+        <h1>JS Compiler Visualizer</h1>
+        <button onClick={handleCompile} className="compile-btn">Compile & Run</button>
+      </header>
 
-      {error && <div className="error">Error: {error}</div>}
+      {error && <div className="error-banner">Error: {error}</div>}
 
-      <div className="tabs">
-        <button 
-          className={activeTab === 'tokens' ? 'active' : ''} 
-          onClick={() => setActiveTab('tokens')}
+      <div className="main-content" ref={containerRef}>
+        
+        {/* Left Column */}
+        <div 
+          className="panel-column" 
+          style={{ width: `${leftWidth}%` }}
+          ref={leftPanelRef}
         >
-          Tokens
-        </button>
-        <button 
-          className={activeTab === 'ast' ? 'active' : ''} 
-          onClick={() => setActiveTab('ast')}
-        >
-          AST
-        </button>
-      </div>
+          {/* Top: Code Editor */}
+          <div className="panel-container" style={{ height: `${topHeight}%` }}>
+            <div className="panel-header">Input Code</div>
+            <textarea
+              className="code-editor"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Enter JS code here..."
+            />
+          </div>
 
-      <div className="output-section">
-        {activeTab === 'tokens' && tokens && (
-          <>
-            <h2>Tokens ({tokens.length})</h2>
-            <div className="tokens-list">
-              {tokens.map((token, index) => (
+          <div 
+            className="resize-handle-vertical"
+            onMouseDown={startVerticalResize}
+          />
+
+          {/* Bottom: Lexer Output */}
+          <div className="panel-container" style={{ height: `${100 - topHeight}%` }}>
+            <div className="panel-header">Lexer Output (Tokens)</div>
+            <div className="panel-content tokens-list">
+              {tokens ? tokens.map((token, index) => (
                 <div key={index} className={`token-item ${getTokenClass(token)}`}>
                   {formatToken(token)}
                 </div>
-              ))}
+              )) : <span className="placeholder">No tokens generated</span>}
             </div>
-          </>
-        )}
+          </div>
+        </div>
 
-        {activeTab === 'ast' && ast && (
-          <>
-            <h2>Abstract Syntax Tree</h2>
-            <div className="ast-view">
-              <pre>{JSON.stringify(ast, null, 2)}</pre>
-            </div>
-          </>
-        )}
+        <div 
+          className="resize-handle-horizontal"
+          onMouseDown={startHorizontalResize}
+        />
+
+        {/* Right Column: AST */}
+        <div className="panel-column" style={{ width: `${100 - leftWidth}%` }}>
+          <div className="panel-container" style={{ height: '100%' }}>
+             <div className="panel-header">AST & Execution Result</div>
+             <div className="panel-content ast-view">
+               {ast ? (
+                 <ReactJson 
+                   src={ast} 
+                   theme="monokai" 
+                   displayDataTypes={false} 
+                   displayObjectSize={false} 
+                   enableClipboard={true} 
+                   style={{ backgroundColor: 'transparent' }}
+                 />
+               ) : (
+                 <span className="placeholder">No AST generated</span>
+               )}
+             </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -1,135 +1,175 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  height: 100%;
   width: 100%;
-}
-
-.editor-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-textarea {
-  width: 100%;
-  padding: 1rem;
-  font-family: monospace;
-  font-size: 16px;
   background-color: #1e1e1e;
   color: #d4d4d4;
-  border-radius: 8px;
-  border: 1px solid #333;
+  overflow: hidden;
 }
 
-button {
-  padding: 0.8rem 1.6rem;
-  font-size: 1rem;
-  cursor: pointer;
-  background-color: #646cff;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #252526;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #61dafb;
+}
+
+.compile-btn {
+  padding: 0.4rem 1rem;
+  background-color: #0e639c;
   color: white;
   border: none;
-  border-radius: 8px;
-  transition: background-color 0.25s;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
-button:hover {
-  background-color: #535bf2;
+.compile-btn:hover {
+  background-color: #1177bb;
 }
 
-.tabs {
+.error-banner {
+  background-color: #5a1d1d;
+  color: #ffcccc;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #ff4646;
+}
+
+.main-content {
+  flex: 1;
   display: flex;
-  gap: 1rem;
-  justify-content: center;
+  overflow: hidden;
 }
 
-.tabs button {
-  background-color: #f0f0f0;
-  color: #333;
-  border: 1px solid #ccc;
+.panel-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
-.tabs button.active {
-  background-color: #646cff;
-  color: white;
-  border-color: #646cff;
+.panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #1e1e1e;
+  overflow: hidden;
 }
 
-.output-section {
-  text-align: left;
-  background-color: #f9f9f9;
-  padding: 1rem;
-  border-radius: 8px;
-  color: #333;
+.panel-header {
+  padding: 0.3rem 0.8rem;
+  background-color: #2d2d2d;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9cdcfe;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
 }
 
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.code-editor {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: none;
+  resize: none;
+  outline: none;
+}
+
+.resize-handle-horizontal {
+  width: 4px;
+  background-color: #333;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.resize-handle-horizontal:hover,
+.resize-handle-horizontal:active {
+  background-color: #0e639c;
+}
+
+.resize-handle-vertical {
+  height: 4px;
+  background-color: #333;
+  cursor: row-resize;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.resize-handle-vertical:hover,
+.resize-handle-vertical:active {
+  background-color: #0e639c;
+}
+
+/* Tokens */
 .tokens-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-content: flex-start;
 }
 
 .token-item {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
   font-family: monospace;
-  font-size: 13px;
-  font-weight: bold;
-  border: 1px solid rgba(0,0,0,0.1);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.token-keyword {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border-color: #bbdefb;
-}
+.token-keyword { background-color: #c586c0; color: #1e1e1e; }
+.token-identifier { background-color: #9cdcfe; color: #1e1e1e; }
+.token-number { background-color: #b5cea8; color: #1e1e1e; }
+.token-string { background-color: #ce9178; color: #1e1e1e; }
+.token-default { background-color: #d4d4d4; color: #1e1e1e; }
 
-.token-identifier {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border-color: #c8e6c9;
-}
-
-.token-number {
-  background-color: #fff3e0;
-  color: #ef6c00;
-  border-color: #ffe0b2;
-}
-
-.token-string {
-  background-color: #fce4ec;
-  color: #c2185b;
-  border-color: #f8bbd0;
-}
-
-.token-default {
-  background-color: #f5f5f5;
-  color: #424242;
-  border-color: #e0e0e0;
-}
-
+/* AST */
 .ast-view {
-  background-color: #282c34;
-  color: #abb2bf;
-  padding: 1rem;
-  border-radius: 6px;
-  overflow-x: auto;
-  font-family: monospace;
-  font-size: 14px;
-  line-height: 1.5;
+  flex: 1;
+  overflow: auto;
+  padding: 0;
 }
 
-.error {
-  color: #ff4646;
-  background-color: #3d1a1a;
+.ast-view .react-json-view {
+  font-family: 'Fira Code', monospace;
+  font-size: 13px;
+  background-color: transparent !important;
+}
+
+.placeholder {
+  color: #666;
+  font-style: italic;
   padding: 1rem;
-  border-radius: 8px;
 }
