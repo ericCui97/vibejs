@@ -21,9 +21,9 @@ const server = Bun.serve({
 
     if (url.pathname === "/compile" && req.method === "POST") {
         try {
-            const body = await req.json();
+            const body = await req.json() as any;
             const sourceCode = body.code || "";
-            const mode = body.mode || "token"; // "token" or "ast"
+            const mode = body.mode || "token"; // "token", "ast", or "eval"
             
             // Write temp file
             const tempFile = join(import.meta.dir, "temp.js");
@@ -33,6 +33,8 @@ const server = Bun.serve({
             const args = [COMPILER_BIN, tempFile];
             if (mode === "ast") {
                 args.push("--ast");
+            } else if (mode === "eval") {
+                args.push("--eval");
             } else {
                 args.push("--json");
             }
@@ -53,7 +55,14 @@ const server = Bun.serve({
                 });
             }
 
-            return new Response(output, { headers, headers: { ...headers, "Content-Type": "application/json" } });
+            // For eval mode, we return a JSON object with logs
+            if (mode === "eval") {
+                const combinedHeaders = { ...headers, "Content-Type": "application/json" };
+                return new Response(JSON.stringify({ logs: output }), { headers: combinedHeaders });
+            }
+
+            const combinedHeaders = { ...headers, "Content-Type": "application/json" };
+            return new Response(output, { headers: combinedHeaders });
 
         } catch (e) {
              return new Response(JSON.stringify({ error: String(e) }), { headers, status: 500 });

@@ -49,6 +49,11 @@ fn test_integration_fixtures() {
 
             let actual_output = env.output.borrow().join("\n");
             
+            // 打印测试特性和结果
+            println!("测试文件: {}", path.display());
+            println!("预期输出:\n{}", expected_output);
+            println!("实际输出:\n{}", actual_output.trim());
+            
             assert_eq!(
                 actual_output.trim(), 
                 expected_output, 

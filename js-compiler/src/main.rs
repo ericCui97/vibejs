@@ -38,7 +38,12 @@ fn main() {
 
         let mut env = Environment::new();
         let result = eval(program, &mut env);
-        println!("{}", result);
+        // Only print result if it's not null, or maybe we don't print result at all if we rely on console.log?
+        // But for REPL-like behavior, printing the result is good.
+        // However, if the result is Null (like from a let statement or console.log), we might skip printing "null".
+        if result != object::Object::Null {
+            println!("{}", result);
+        }
     } else if args.contains(&String::from("--ast")) {
         let lexer = Lexer::new(&content);
         let mut parser = Parser::new(lexer);
