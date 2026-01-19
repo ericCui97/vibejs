@@ -271,10 +271,16 @@ fn eval_hash_literal(node: Box<crate::ast::HashLiteral>, env: &mut Environment) 
     let mut pairs = HashMap::new();
 
     for (key_node, value_node) in node.pairs {
-        let key = eval_expression(key_node, env);
-        if let Object::Error(_) = key {
-            return key;
-        }
+        let key = match key_node {
+            Expression::Identifier(ident) => Object::String(ident.value),
+            _ => {
+                let k = eval_expression(key_node, env);
+                if let Object::Error(_) = k {
+                    return k;
+                }
+                k
+            }
+        };
 
         let hash_key = match ObjectKey::from_object(&key) {
             Some(k) => k,
