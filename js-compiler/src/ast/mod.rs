@@ -122,7 +122,7 @@ pub struct FunctionLiteral {
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct CallExpression {
-    pub token: Token, // The '(' token
+    pub token: Token,         // The '(' token
     pub function: Expression, // Identifier or FunctionLiteral
     pub arguments: Vec<Expression>,
 }
@@ -205,6 +205,8 @@ impl Token {
             Token::Slash => "/".to_string(),
             Token::Lt => "<".to_string(),
             Token::Gt => ">".to_string(),
+            Token::LtEq => "<=".to_string(),
+            Token::GtEq => ">=".to_string(),
             Token::Eq => "==".to_string(),
             Token::NotEq => "!=".to_string(),
             Token::LParen => "(".to_string(),

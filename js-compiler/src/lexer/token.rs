@@ -13,27 +13,29 @@ pub enum Token {
     For,
     True,
     False,
-    
+
     // Identifiers & Literals
     Identifier(String),
     Number(f64),
     String(String),
-    
+
     // Operators
-    Equal,      // =
-    Plus,       // +
-    Minus,      // -
-    Asterisk,   // *
-    Slash,      // /
-    Bang,       // !
-    PlusPlus,   // ++
-    
+    Equal,    // =
+    Plus,     // +
+    Minus,    // -
+    Asterisk, // *
+    Slash,    // /
+    Bang,     // !
+    PlusPlus, // ++
+
     // Comparison
-    Eq,         // ==
-    NotEq,      // !=
-    Lt,         // <
-    Gt,         // >
-    
+    Eq,    // ==
+    NotEq, // !=
+    Lt,    // <
+    Gt,    // >
+    LtEq,  // <=
+    GtEq,  // >=
+
     // Delimiters
     SemiColon,
     Comma,
@@ -44,8 +46,8 @@ pub enum Token {
     LBracket,
     RBracket,
     Colon,
-    Dot,        // .
-    
+    Dot, // .
+
     EOF,
     Illegal,
 }

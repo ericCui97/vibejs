@@ -13,7 +13,7 @@ pub struct Lexer {
 mod tests_hash {
     use super::*;
     use crate::lexer::token::Token;
-    
+
     #[test]
     fn test_hash_literal_lexing() {
         let input = "{ foo: 1, bar: 2 };";
@@ -46,13 +46,13 @@ mod tests_hash {
         assert_eq!(lexer.next_token(), Token::Equal);
         assert_eq!(lexer.next_token(), Token::Number(5.0));
         assert_eq!(lexer.next_token(), Token::SemiColon);
-        
+
         assert_eq!(lexer.next_token(), Token::Let);
         assert_eq!(lexer.next_token(), Token::Identifier("y".to_string()));
         assert_eq!(lexer.next_token(), Token::Equal);
         assert_eq!(lexer.next_token(), Token::Number(10.0));
         assert_eq!(lexer.next_token(), Token::SemiColon);
-        
+
         assert_eq!(lexer.next_token(), Token::EOF);
     }
 }
@@ -78,7 +78,7 @@ impl Lexer {
         self.position = self.read_position;
         self.read_position += 1;
     }
-    
+
     fn peek_char(&self) -> char {
         if self.read_position >= self.input.len() {
             '\0'
@@ -125,8 +125,22 @@ impl Lexer {
                     Token::Slash
                 }
             }
-            '<' => Token::Lt,
-            '>' => Token::Gt,
+            '<' => {
+                if self.peek_char() == '=' {
+                    self.read_char();
+                    Token::LtEq
+                } else {
+                    Token::Lt
+                }
+            }
+            '>' => {
+                if self.peek_char() == '=' {
+                    self.read_char();
+                    Token::GtEq
+                } else {
+                    Token::Gt
+                }
+            }
             '(' => Token::LParen,
             ')' => Token::RParen,
             '{' => Token::LBrace,
@@ -138,9 +152,9 @@ impl Lexer {
             ';' => Token::SemiColon,
             ',' => Token::Comma,
             '"' | '\'' => {
-                 let quote = self.ch;
-                 let str_val = self.read_string(quote);
-                 return str_val; // read_string already advances, so return early
+                let quote = self.ch;
+                let str_val = self.read_string(quote);
+                return str_val; // read_string already advances, so return early
             }
             '\0' => Token::EOF,
             _ => {
@@ -163,7 +177,7 @@ impl Lexer {
             self.read_char();
         }
     }
-    
+
     fn skip_comment(&mut self) {
         while self.ch != '\n' && self.ch != '\0' {
             self.read_char();
@@ -176,7 +190,7 @@ impl Lexer {
         while self.ch.is_alphanumeric() {
             self.read_char();
         }
-        
+
         let ident: String = self.input[start_pos..self.position].iter().collect();
         match ident.as_str() {
             "let" => Token::Let,
@@ -198,7 +212,7 @@ impl Lexer {
         while self.ch.is_numeric() || self.ch == '.' {
             self.read_char();
         }
-        
+
         let num_str: String = self.input[start_pos..self.position].iter().collect();
         let value = num_str.parse::<f64>().unwrap_or(0.0);
         Token::Number(value)
@@ -207,18 +221,18 @@ impl Lexer {
     fn read_string(&mut self, quote: char) -> Token {
         self.read_char(); // Skip opening quote
         let start_pos = self.position;
-        
+
         while self.ch != quote && self.ch != '\0' {
             self.read_char();
         }
-        
+
         if self.ch == '\0' {
-             return Token::Illegal; // Unterminated string
+            return Token::Illegal; // Unterminated string
         }
-        
+
         let str_value: String = self.input[start_pos..self.position].iter().collect();
         self.read_char(); // Skip closing quote (will be advanced again by next_token caller logic if not handled carefully, but here we return directly)
-        
+
         Token::String(str_value)
     }
 }
@@ -267,7 +281,7 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::SemiColon);
         assert_eq!(lexer.next_token(), Token::EOF);
     }
-    
+
     #[test]
     fn test_function_and_comparison() {
         let input = "
@@ -289,7 +303,7 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Identifier("b".to_string()));
         assert_eq!(lexer.next_token(), Token::RParen);
         assert_eq!(lexer.next_token(), Token::LBrace);
-        
+
         assert_eq!(lexer.next_token(), Token::If);
         assert_eq!(lexer.next_token(), Token::LParen);
         assert_eq!(lexer.next_token(), Token::Identifier("a".to_string()));
@@ -297,21 +311,21 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Identifier("b".to_string()));
         assert_eq!(lexer.next_token(), Token::RParen);
         assert_eq!(lexer.next_token(), Token::LBrace);
-        
+
         assert_eq!(lexer.next_token(), Token::Return);
         assert_eq!(lexer.next_token(), Token::True);
         assert_eq!(lexer.next_token(), Token::SemiColon);
-        
+
         assert_eq!(lexer.next_token(), Token::RBrace);
         assert_eq!(lexer.next_token(), Token::Else);
         assert_eq!(lexer.next_token(), Token::LBrace);
-        
+
         assert_eq!(lexer.next_token(), Token::Return);
         assert_eq!(lexer.next_token(), Token::Identifier("a".to_string()));
         assert_eq!(lexer.next_token(), Token::Plus);
         assert_eq!(lexer.next_token(), Token::Identifier("b".to_string()));
         assert_eq!(lexer.next_token(), Token::SemiColon);
-        
+
         assert_eq!(lexer.next_token(), Token::RBrace);
         assert_eq!(lexer.next_token(), Token::RBrace);
         assert_eq!(lexer.next_token(), Token::EOF);
@@ -329,14 +343,14 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Number(10.0));
         assert_eq!(lexer.next_token(), Token::RParen);
         assert_eq!(lexer.next_token(), Token::LBrace);
-        
+
         assert_eq!(lexer.next_token(), Token::Identifier("x".to_string()));
         assert_eq!(lexer.next_token(), Token::Equal);
         assert_eq!(lexer.next_token(), Token::Identifier("x".to_string()));
         assert_eq!(lexer.next_token(), Token::Plus);
         assert_eq!(lexer.next_token(), Token::Number(1.0));
         assert_eq!(lexer.next_token(), Token::SemiColon);
-        
+
         assert_eq!(lexer.next_token(), Token::RBrace);
         assert_eq!(lexer.next_token(), Token::EOF);
     }

@@ -48,7 +48,7 @@
 - [x] **Evaluator Basics**: 实现基本的求值循环 (`Eval` trait)，支持字面量求值。
 - [x] **Builtin Functions**: 实现 `print` 函数。
 - [x] **Expression Evaluation**: 支持前缀 (`!`, `-`) 和中缀 (`+`, `-`, `*`, `/`, `>`, `<`, `==`, `!=`) 表达式求值。
-- [ ] **Statement Evaluation**: 支持 `let` 绑定, `return`, `if/else` 控制流。
+- [x] **Statement Evaluation**: 支持 `let` 绑定, `return`, `if/else` 控制流，While/For 循环。
 - [ ] **Function Application**: 支持函数调用和闭包。
 
 ## 历史记录
